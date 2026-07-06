@@ -22,6 +22,7 @@ import requests
 import keyboard
 import json
 import webbrowser
+import i18n
 
 # import ctypes
 import sys
@@ -96,6 +97,7 @@ action_list = [
 ]
 # 默认配置
 default_config = {
+    "language": i18n.DEFAULT_LANGUAGE,
     "shortcuts": {
         "key1": {"key": "ctrl+space", "action": 0},
         "key2": {"key": "Ctrl+f2", "action": 1},
@@ -174,7 +176,23 @@ def modify_config(file_path, section, key, value):
 # 更新配置文件的函数
 def save_config(config, file_path):
     with open(file_path, "w") as file:
-        json.dump(config, file, indent=4)
+        json.dump(config, file, indent=4, ensure_ascii=False)
+
+
+def get_config_language():
+    config = load_config(config_file_path)
+    return i18n.safe_language(config.get("language"))
+
+
+def set_config_language(language):
+    language = i18n.normalize_language(language)
+    config = load_config(config_file_path)
+    config["language"] = language
+    save_config(config, config_file_path)
+
+
+i18n.set_language(get_config_language())
+i18n.install_tk_i18n(ttk, tk)
 
 
 # 创建一个队列用于线程间通信
@@ -9669,6 +9687,33 @@ def mainWindow():
 
     # 将鼠标左键点击事件绑定到这个 Label 上
     unsupported_label.bind("<Button-1>", open_bilibili_link)
+
+    language_frame = ttk.Frame(main_window)
+    language_frame.place(x=-5, y=-3, relx=1, rely=1, anchor=SE)
+    ttk.Label(language_frame, text="语言", font=("黑体", 8)).pack(side=LEFT)
+    language_combobox = ttk.Combobox(
+        language_frame,
+        width=10,
+        values=i18n.language_options(),
+        state=READONLY,
+        font=("黑体", 8),
+    )
+    language_combobox.pack(side=LEFT, padx=(3, 0))
+    language_combobox.current(
+        [language.code for language in i18n.supported_languages()].index(i18n.get_language())
+    )
+
+    def change_language(event=None):
+        del event
+        try:
+            language = i18n.language_code_for_native_name(language_combobox.get())
+        except ValueError:
+            language = i18n.DEFAULT_LANGUAGE
+        i18n.set_language(language)
+        set_config_language(language)
+        i18n.refresh_widgets(main_window)
+
+    language_combobox.bind("<<ComboboxSelected>>", change_language)
 
     # def recruit():
     #     global main_window

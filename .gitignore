@@ -181,4 +181,7 @@ Installer.py
 key.txt
 PVZ_live*
 test*
+!tests/
+!tests/**
 PVZ_Hybrid.py
+tests/__pycache__
