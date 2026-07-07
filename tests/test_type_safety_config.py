@@ -30,5 +30,6 @@ def test_mypy_gate_covers_typed_core_modules():
     assert mypy_config["disallow_untyped_defs"] is True
     assert mypy_config["check_untyped_defs"] is True
     assert mypy_config["warn_return_any"] is True
+    assert mypy_config["strict"] is True
 
     assert "python -m mypy" in workflow
