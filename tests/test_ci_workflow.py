@@ -59,6 +59,7 @@ def test_release_workflow_builds_windows_exe_artifact_and_checksum():
     assert "permissions:\n      contents: write" in workflow
     assert "actions/download-artifact@v8" in workflow
     assert "skip-decompress: true" not in workflow
+    assert "GH_REPO: ${{ github.repository }}" in workflow
     assert "gh release upload" in workflow
     assert (
         "github.ref_type == 'tag' && (startsWith(github.ref_name, 'v') || "
