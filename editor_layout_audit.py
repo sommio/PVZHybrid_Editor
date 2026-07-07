@@ -13,7 +13,10 @@ class MainWindowLayout:
     sets_minimum_window_size: bool
     uses_initial_window_geometry: bool
     uses_scrollable_viewport: bool
+    uses_bottom_bar: bool
     notebook_parent: str | None
+    bottom_control_parents: dict[str, str | None]
+    bottom_control_geometry_managers: dict[str, list[str]]
     literal_geometries: set[str]
 
 
@@ -40,7 +43,13 @@ def inspect_main_window_layout(path: Path) -> MainWindowLayout:
         sets_minimum_window_size=visitor.sets_minimum_window_size,
         uses_initial_window_geometry=visitor.uses_initial_window_geometry,
         uses_scrollable_viewport=visitor.uses_scrollable_viewport,
+        uses_bottom_bar=visitor.uses_bottom_bar,
         notebook_parent=visitor.notebook_parent,
+        bottom_control_parents=visitor.bottom_control_parents,
+        bottom_control_geometry_managers={
+            name: sorted(managers)
+            for name, managers in visitor.bottom_control_geometry_managers.items()
+        },
         literal_geometries=visitor.literal_geometries,
     )
 
@@ -73,7 +82,10 @@ class _LayoutVisitor(ast.NodeVisitor):
         self.sets_minimum_window_size = False
         self.uses_initial_window_geometry = False
         self.uses_scrollable_viewport = False
+        self.uses_bottom_bar = False
         self.notebook_parent: str | None = None
+        self.bottom_control_parents: dict[str, str | None] = {}
+        self.bottom_control_geometry_managers: dict[str, set[str]] = {}
         self.literal_geometries: set[str] = set()
         self._inside_main_window = False
 
@@ -99,9 +111,12 @@ class _LayoutVisitor(ast.NodeVisitor):
             self.uses_scrollable_viewport = True
         elif call_name == "main_window.geometry":
             self._collect_literal_geometry(node)
+        elif call_name is not None:
+            self._collect_bottom_control_geometry_manager(call_name)
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        self._collect_bottom_control_parent(node)
         if _assigns_name(node, "page_tab") and isinstance(node.value, ast.Call):
             call_name = _call_name(node.value.func)
             if call_name == "ttk.Notebook" and node.value.args:
@@ -112,6 +127,29 @@ class _LayoutVisitor(ast.NodeVisitor):
         first_arg = node.args[0] if node.args else None
         if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
             self.literal_geometries.add(first_arg.value)
+
+    def _collect_bottom_control_parent(self, node: ast.Assign) -> None:
+        if not self._inside_main_window or not isinstance(node.value, ast.Call):
+            return
+        for name in _assigned_names(node):
+            if name == "bottom_bar":
+                self.uses_bottom_bar = True
+            if name not in _BOTTOM_CONTROLS:
+                continue
+            parent = _call_name(node.value.args[0]) if node.value.args else None
+            self.bottom_control_parents[name] = parent
+
+    def _collect_bottom_control_geometry_manager(self, call_name: str) -> None:
+        if not self._inside_main_window:
+            return
+        for control_name in _BOTTOM_CONTROLS:
+            prefix = f"{control_name}."
+            if not call_name.startswith(prefix):
+                continue
+            manager = call_name.removeprefix(prefix)
+            if manager not in {"pack", "place", "grid"}:
+                continue
+            self.bottom_control_geometry_managers.setdefault(control_name, set()).add(manager)
 
 
 class _GameDetectionVisitor(ast.NodeVisitor):
@@ -210,6 +248,10 @@ def _assigns_name(node: ast.Assign, name: str) -> bool:
     return any(isinstance(target, ast.Name) and target.id == name for target in node.targets)
 
 
+def _assigned_names(node: ast.Assign) -> set[str]:
+    return {target.id for target in node.targets if isinstance(target, ast.Name)}
+
+
 def _assigns_process_label_not_found(node: ast.AST) -> bool:
     if not isinstance(node, ast.Assign):
         return False
@@ -219,3 +261,14 @@ def _assigns_process_label_not_found(node: ast.AST) -> bool:
         isinstance(target, ast.Subscript) and _call_name(target.value) == "process_label"
         for target in node.targets
     )
+
+
+_BOTTOM_CONTROLS = frozenset(
+    {
+        "process_frame",
+        "back_ground_check",
+        "plugin_button",
+        "unsupported_label",
+        "language_frame",
+    }
+)

@@ -49,13 +49,16 @@ def test_release_workflow_builds_windows_exe_artifact_and_checksum():
     assert "release_package.py" in workflow
     assert "--github-output $env:GITHUB_OUTPUT" in workflow
     assert "actions/upload-artifact@v7" in workflow
-    assert "archive: false" in workflow
+    assert "name: ${{ steps.package.outputs.exe_name }}" in workflow
+    assert "name: ${{ steps.package.outputs.sha_name }}" in workflow
+    assert "name: ${{ steps.package.outputs.manifest_name }}" in workflow
+    assert "archive: false" not in workflow
     assert "win7_x86.PVZHybrid_Editor_b${{ steps.version.outputs.version }}" in workflow
     assert "release-assets:" in workflow
     assert "needs: build-windows-exe" in workflow
     assert "permissions:\n      contents: write" in workflow
     assert "actions/download-artifact@v8" in workflow
-    assert workflow.count("skip-decompress: true") == 3
+    assert "skip-decompress: true" not in workflow
     assert "gh release upload" in workflow
     assert (
         "github.ref_type == 'tag' && (startsWith(github.ref_name, 'v') || "
@@ -73,7 +76,6 @@ def test_release_workflow_captures_windows_responsive_ui_smoke_screenshot():
     assert "python responsive_ui_smoke.py --output-dir ui-smoke-artifacts" in workflow
     assert "ui-smoke-artifacts/responsive-ui-smoke.png" in workflow
     assert "ui-smoke-artifacts/responsive-ui-smoke.json" in workflow
-    assert workflow.count("archive: false") >= 5
 
 
 def test_release_workflow_captures_actual_editor_ui_smoke_screenshot():

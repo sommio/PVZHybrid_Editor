@@ -1212,8 +1212,11 @@ def mainWindow():
 
     # style=ttk.Style()
     # style.configure('small.TButton',font=("黑体",8),padding=(0,0,0,0))
-    process_frame = ttk.Frame(main_window)
-    process_frame.place(x=0, y=0, relx=1, rely=1, anchor=SE)
+    bottom_bar = ttk.Frame(main_window)
+    bottom_bar.pack(side=BOTTOM, fill=X, padx=3, pady=(0, 3))
+
+    process_frame = ttk.Frame(bottom_bar)
+    process_frame.pack(side=RIGHT, padx=(6, 0))
     process_label = ttk.Label(process_frame, text="", font=("黑体", 8))
     process_label.pack(side=LEFT)
 
@@ -1270,13 +1273,13 @@ def mainWindow():
     choose_process_button.pack(side=LEFT)
     back_ground_status = ttk.IntVar(main_window)
     back_ground_check = ttk.Checkbutton(
-        main_window,
+        bottom_bar,
         text="后台运行",
         variable=back_ground_status,
         bootstyle="round-toggle",
         command=lambda: pvz.backGround(back_ground_status.get()),
     )
-    back_ground_check.place(x=3, y=-3, relx=0, rely=1, anchor=SW)
+    back_ground_check.pack(side=LEFT, padx=(0, 6))
 
     main_viewport = responsive_tk.create_scrollable_viewport(
         main_window,
@@ -1284,7 +1287,7 @@ def mainWindow():
         tk_module=tk,
         min_content_width=900,
         min_content_height=650,
-        bottom_margin=25,
+        bottom_margin=0,
     )
     page_tab = ttk.Notebook(main_viewport.frame)
     page_tab.pack(fill=BOTH, expand=True)
@@ -8840,19 +8843,19 @@ def mainWindow():
 
     # 创建一个按钮，用于加载插件
     plugin_button = ttk.Button(
-        main_window,
+        bottom_bar,
         text="载入插件",
         padding=0,
         bootstyle="primary",
         cursor="hand2",
         command=lambda: load_plugin(main_window),
     )
-    plugin_button.place(x=100, y=0, relx=0, rely=1, anchor="sw")
+    plugin_button.pack(side=LEFT)
 
     # 在“载入插件”和“选择游戏”按钮之间显示醒目的提示
     # 将提示放在窗口底部居中，使用红色粗体以提高可见性
     unsupported_label = ttk.Label(
-        main_window,
+        bottom_bar,
         text="重制版修改器点这里",
         font=(
             "黑体",
@@ -8863,8 +8866,7 @@ def mainWindow():
         bootstyle=("danger",),
         cursor="hand2",  # 鼠标悬停时变成小手图标，提升交互体验
     )
-    # 放置在底部中间，略微向上偏移与其他底部控件错开
-    unsupported_label.place(relx=0.5, rely=1, y=-3, anchor="s")
+    unsupported_label.pack(side=LEFT, expand=True, padx=(8, 8))
 
     # ----------------- 添加点击跳转逻辑 -----------------
 
@@ -8875,8 +8877,8 @@ def mainWindow():
     # 将鼠标左键点击事件绑定到这个 Label 上
     unsupported_label.bind("<Button-1>", open_bilibili_link)
 
-    language_frame = ttk.Frame(main_window)
-    language_frame.place(x=-5, y=-3, relx=1, rely=1, anchor=SE)
+    language_frame = ttk.Frame(bottom_bar)
+    language_frame.pack(side=RIGHT, padx=(8, 0))
     ttk.Label(language_frame, text="语言", font=("黑体", 8)).pack(side=LEFT)
     language_combobox = ttk.Combobox(
         language_frame,

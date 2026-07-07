@@ -17,6 +17,26 @@ def test_main_window_uses_responsive_scrollable_viewport():
     assert "600x650" not in layout.literal_geometries
 
 
+def test_main_window_uses_bottom_bar_instead_of_overlaying_bottom_controls():
+    layout = editor_layout_audit.inspect_main_window_layout(EDITOR)
+
+    assert layout.uses_bottom_bar is True
+    assert layout.bottom_control_parents == {
+        "process_frame": "bottom_bar",
+        "back_ground_check": "bottom_bar",
+        "plugin_button": "bottom_bar",
+        "unsupported_label": "bottom_bar",
+        "language_frame": "bottom_bar",
+    }
+    assert layout.bottom_control_geometry_managers == {
+        "process_frame": ["pack"],
+        "back_ground_check": ["pack"],
+        "plugin_button": ["pack"],
+        "unsupported_label": ["pack"],
+        "language_frame": ["pack"],
+    }
+
+
 def test_layout_audit_reports_fixed_geometry_and_direct_notebook_parent(tmp_path):
     editor = tmp_path / "editor.py"
     editor.write_text(
@@ -28,6 +48,8 @@ def test_layout_audit_reports_fixed_geometry_and_direct_notebook_parent(tmp_path
                 "def mainWindow():",
                 "    main_window.geometry('600x650')",
                 "    page_tab = ttk.Notebook(main_window)",
+                "    process_frame = ttk.Frame(main_window)",
+                "    process_frame.place(x=0, y=0)",
             ]
         ),
         encoding="utf-8",
@@ -39,7 +61,10 @@ def test_layout_audit_reports_fixed_geometry_and_direct_notebook_parent(tmp_path
     assert layout.sets_minimum_window_size is False
     assert layout.uses_initial_window_geometry is False
     assert layout.uses_scrollable_viewport is False
+    assert layout.uses_bottom_bar is False
     assert layout.notebook_parent == "main_window"
+    assert layout.bottom_control_parents == {"process_frame": "main_window"}
+    assert layout.bottom_control_geometry_managers == {"process_frame": ["place"]}
     assert layout.literal_geometries == {"600x650"}
 
 
@@ -49,6 +74,7 @@ def test_layout_audit_tolerates_dynamic_geometry_and_unparented_notebook(tmp_pat
         "\n".join(
             [
                 "def mainWindow():",
+                "    (lambda: None)()",
                 "    main_window.geometry(123)",
                 "    main_window.geometry()",
                 "    page_tab = ttk.Notebook()",

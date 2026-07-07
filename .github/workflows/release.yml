@@ -94,24 +94,24 @@ jobs:
       - name: Upload executable artifact
         uses: actions/upload-artifact@v7
         with:
+          name: ${{ steps.package.outputs.exe_name }}
           path: ${{ steps.package.outputs.exe_path }}
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload checksum artifact
         uses: actions/upload-artifact@v7
         with:
+          name: ${{ steps.package.outputs.sha_name }}
           path: ${{ steps.package.outputs.sha_path }}
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload package manifest artifact
         uses: actions/upload-artifact@v7
         with:
+          name: ${{ steps.package.outputs.manifest_name }}
           path: ${{ steps.package.outputs.manifest_path }}
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
@@ -140,16 +140,16 @@ jobs:
       - name: Upload responsive UI screenshot
         uses: actions/upload-artifact@v7
         with:
+          name: responsive-ui-smoke.png
           path: ui-smoke-artifacts/responsive-ui-smoke.png
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload responsive UI audit
         uses: actions/upload-artifact@v7
         with:
+          name: responsive-ui-smoke.json
           path: ui-smoke-artifacts/responsive-ui-smoke.json
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
@@ -178,16 +178,16 @@ jobs:
       - name: Upload actual editor UI screenshot
         uses: actions/upload-artifact@v7
         with:
+          name: editor-ui-smoke.png
           path: editor-ui-smoke-artifacts/editor-ui-smoke.png
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload actual editor UI audit
         uses: actions/upload-artifact@v7
         with:
+          name: editor-ui-smoke.json
           path: editor-ui-smoke-artifacts/editor-ui-smoke.json
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
@@ -206,21 +206,18 @@ jobs:
         with:
           name: ${{ needs.build-windows-exe.outputs.exe_name }}
           path: dist
-          skip-decompress: true
 
       - name: Download checksum artifact
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build-windows-exe.outputs.sha_name }}
           path: dist
-          skip-decompress: true
 
       - name: Download package manifest artifact
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build-windows-exe.outputs.manifest_name }}
           path: dist
-          skip-decompress: true
 
       - name: Upload release assets
         shell: bash
