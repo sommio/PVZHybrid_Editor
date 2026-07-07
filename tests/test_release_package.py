@@ -78,6 +78,25 @@ def test_prepare_release_package_can_skip_github_output(tmp_path):
     assert package.sha_path.exists()
 
 
+def test_prepare_release_package_can_omit_platform_tag_for_standard_build(tmp_path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    exe_name = f"PVZHybrid_Editor_b{commit}.exe"
+    (dist_dir / exe_name).write_bytes(b"abc")
+
+    package = release_package.prepare_release_package(
+        dist_dir=dist_dir,
+        version=commit,
+        built_at=date(2026, 5, 10),
+        platform_tag="",
+    )
+
+    assert package.exe_name == exe_name
+    assert package.manifest_path.name == f"{exe_name}.txt"
+    assert package.sha_path.name == f"{exe_name}.sha256"
+
+
 def test_read_version_strips_whitespace_and_rejects_empty_file(tmp_path):
     version_file = tmp_path / "version.txt"
     version_file.write_text("  2.73\n", encoding="utf-8")
@@ -111,6 +130,41 @@ def test_cli_prepares_package_and_writes_github_output(tmp_path):
 
     assert exit_code == 0
     assert "sha_path=" in github_output.read_text(encoding="utf-8")
+
+
+def test_cli_accepts_literal_commit_version_and_standard_build(tmp_path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    exe_name = f"PVZHybrid_Editor_b{commit}.exe"
+    (dist_dir / exe_name).write_bytes(b"abc")
+
+    exit_code = release_package.main(
+        [
+            "--dist-dir",
+            str(dist_dir),
+            "--version",
+            commit,
+            "--no-platform-tag",
+            "--built-at",
+            "2026-05-10",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (dist_dir / f"{exe_name}.txt").exists()
+
+
+def test_cli_rejects_empty_literal_version(tmp_path):
+    with pytest.raises(ValueError, match="version is empty"):
+        release_package.main(
+            [
+                "--dist-dir",
+                str(tmp_path),
+                "--version",
+                " ",
+            ]
+        )
 
 
 def test_cli_uses_current_date_when_built_at_is_omitted(tmp_path):

@@ -37,7 +37,8 @@ def read_version(path: Path) -> str:
 
 
 def executable_name(version: str, platform_tag: str = DEFAULT_PLATFORM_TAG) -> str:
-    return f"{platform_tag}.{APP_NAME}_b{version}.exe"
+    prefix = f"{platform_tag}." if platform_tag else ""
+    return f"{prefix}{APP_NAME}_b{version}.exe"
 
 
 def prepare_release_package(
@@ -116,19 +117,31 @@ def write_github_output(path: Path, package: ReleasePackage) -> None:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dist-dir", type=Path, required=True)
-    parser.add_argument("--version-file", type=Path, required=True)
+    version_group = parser.add_mutually_exclusive_group(required=True)
+    version_group.add_argument("--version-file", type=Path)
+    version_group.add_argument("--version")
     parser.add_argument("--github-output", type=Path)
-    parser.add_argument("--platform-tag", default=DEFAULT_PLATFORM_TAG)
+    platform_group = parser.add_mutually_exclusive_group()
+    platform_group.add_argument("--platform-tag", default=DEFAULT_PLATFORM_TAG)
+    platform_group.add_argument("--no-platform-tag", action="store_true")
     parser.add_argument("--built-at")
     args = parser.parse_args(argv)
+
+    version = args.version
+    if version is not None:
+        version = version.strip()
+        if not version:
+            raise ValueError("version is empty")
+    else:
+        version = read_version(args.version_file)
 
     built_at = _parse_date(args.built_at)
     prepare_release_package(
         dist_dir=args.dist_dir,
-        version=read_version(args.version_file),
+        version=version,
         built_at=built_at,
         github_output=args.github_output,
-        platform_tag=args.platform_tag,
+        platform_tag="" if args.no_platform_tag else args.platform_tag,
     )
     return 0
 
