@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 DEFAULT_WINDOW_WIDTH = 900
-DEFAULT_WINDOW_HEIGHT = 720
+DEFAULT_WINDOW_HEIGHT = 650
 MIN_WINDOW_WIDTH = 600
 MIN_WINDOW_HEIGHT = 520
 SCREEN_MARGIN = 40
@@ -61,7 +61,9 @@ def initial_window_geometry(
     max_x = max(0, screen_width - width)
     max_y = max(0, screen_height - height)
     default_x = max_x // 2
-    default_y = max_y // 2
+    default_y = (
+        0 if screen_height <= height + (screen_margin * 3) else max_y // 2
+    )
 
     x = _clamp(saved_x if saved_x is not None else default_x, 0, max_x)
     y = _clamp(saved_y if saved_y is not None else default_y, 0, max_y)

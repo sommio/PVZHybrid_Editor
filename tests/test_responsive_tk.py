@@ -10,10 +10,23 @@ def test_initial_window_geometry_centers_default_size_on_large_screen():
     )
 
     assert geometry.width == 900
-    assert geometry.height == 720
+    assert geometry.height == 650
     assert geometry.x == 510
-    assert geometry.y == 180
-    assert geometry.as_tk_geometry() == "900x720+510+180"
+    assert geometry.y == 215
+    assert geometry.as_tk_geometry() == "900x650+510+215"
+
+
+def test_initial_window_geometry_keeps_compact_windows_screen_above_taskbar_area():
+    geometry = responsive_tk.initial_window_geometry(
+        screen_width=1024,
+        screen_height=768,
+    )
+
+    assert geometry.width == 900
+    assert geometry.height == 650
+    assert geometry.x == 62
+    assert geometry.y == 0
+    assert geometry.as_tk_geometry() == "900x650+62+0"
 
 
 def test_initial_window_geometry_clamps_saved_position_to_visible_screen():
