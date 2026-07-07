@@ -2,15 +2,87 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release.yml"
 
 
 def test_ci_workflow_runs_free_hosted_python_test_gate():
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert "runs-on: ubuntu-latest" in workflow
-    assert "actions/checkout@v6" in workflow
+    assert "actions/checkout@v7" in workflow
     assert "actions/setup-python@v6" in workflow
     assert "cache: pip" in workflow
     assert "cache-dependency-path: requirements-dev.txt" in workflow
-    assert "python -m ruff check i18n.py i18n_audit.py tests" in workflow
-    assert "python -m pytest -q" in workflow
+    assert (
+        "python -m ruff check editor_config.py editor_ui_smoke.py i18n.py i18n_audit.py "
+        "editor_layout_audit.py editor_runtime.py release_package.py responsive_tk.py "
+        "responsive_ui_smoke.py tests"
+    ) in workflow
+    assert "python -m coverage run -m pytest -q" in workflow
+    assert "python -m coverage report" in workflow
+
+
+def test_release_workflow_builds_windows_exe_artifact_and_checksum():
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "push:\n  pull_request:" in workflow
+    assert "branches:" not in workflow
+    assert "tags:" not in workflow
+    assert "permissions:\n  contents: read" in workflow
+    assert "runs-on: windows-latest" in workflow
+    assert "actions/checkout@v7" in workflow
+    assert "https://www.python.org/ftp/python/3.8.10/python-3.8.10.exe" in workflow
+    assert "python-3.8.10-win32" in workflow
+    assert "Include_pip=1" in workflow
+    assert "platform.architecture()[0] != \"32bit\"" in workflow
+    assert "sys.version_info[:2] != (3, 8)" in workflow
+    assert "& $python -m pip install -r requirements.txt" in workflow
+    assert "& $python -m pip install pyinstaller" in workflow
+    assert "pyinstaller" in workflow
+    assert "--onefile" in workflow
+    assert "--windowed" in workflow
+    assert "--icon res/icon/editor.ico" in workflow
+    assert "--add-data" in workflow
+    assert "locales:locales" in workflow
+    assert "res:res" in workflow
+    assert "win7_x86.PVZHybrid_Editor_b${{ steps.version.outputs.version }}" in workflow
+    assert "release_package.py" in workflow
+    assert "--github-output $env:GITHUB_OUTPUT" in workflow
+    assert "actions/upload-artifact@v7" in workflow
+    assert "archive: false" in workflow
+    assert "win7_x86.PVZHybrid_Editor_b${{ steps.version.outputs.version }}" in workflow
+    assert "release-assets:" in workflow
+    assert "needs: build-windows-exe" in workflow
+    assert "permissions:\n      contents: write" in workflow
+    assert "actions/download-artifact@v8" in workflow
+    assert workflow.count("skip-decompress: true") == 3
+    assert "gh release upload" in workflow
+    assert (
+        "github.ref_type == 'tag' && (startsWith(github.ref_name, 'v') || "
+        "startsWith(github.ref_name, 'b'))"
+    ) in workflow
+
+
+def test_release_workflow_captures_windows_responsive_ui_smoke_screenshot():
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "responsive-ui-smoke:" in workflow
+    assert "name: Windows responsive UI smoke" in workflow
+    assert "runs-on: windows-latest" in workflow
+    assert "actions/setup-python@v6" in workflow
+    assert "python responsive_ui_smoke.py --output-dir ui-smoke-artifacts" in workflow
+    assert "ui-smoke-artifacts/responsive-ui-smoke.png" in workflow
+    assert "ui-smoke-artifacts/responsive-ui-smoke.json" in workflow
+    assert workflow.count("archive: false") >= 5
+
+
+def test_release_workflow_captures_actual_editor_ui_smoke_screenshot():
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "actual-editor-ui-smoke:" in workflow
+    assert "name: Windows actual editor UI smoke" in workflow
+    assert "runs-on: windows-latest" in workflow
+    assert "python -m pip install -r requirements.txt" in workflow
+    assert "python editor_ui_smoke.py --output-dir editor-ui-smoke-artifacts" in workflow
+    assert "editor-ui-smoke-artifacts/editor-ui-smoke.png" in workflow
+    assert "editor-ui-smoke-artifacts/editor-ui-smoke.json" in workflow

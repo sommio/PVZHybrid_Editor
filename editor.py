@@ -22,7 +22,10 @@ import requests
 import keyboard
 import json
 import webbrowser
+import editor_config
+import editor_runtime
 import i18n
+import responsive_tk
 
 # import ctypes
 import sys
@@ -95,100 +98,51 @@ action_list = [
     "游戏减速",
     "随机卡槽",
 ]
-# 默认配置
-default_config = {
-    "language": i18n.DEFAULT_LANGUAGE,
-    "shortcuts": {
-        "key1": {"key": "ctrl+space", "action": 0},
-        "key2": {"key": "Ctrl+f2", "action": 1},
-        "key3": {"key": "Ctrl+f3", "action": 2},
-        "key4": {"key": "Ctrl+f4", "action": 3},
-        "key5": {"key": "Ctrl+f5", "action": 4},
-        "key6": {"key": "Ctrl+f6", "action": 5},
-        "key7": {"key": "Ctrl+f7", "action": 6},
-        "key8": {"key": "Ctrl+f8", "action": 7},
-        "key9": {"key": "Ctrl+f9", "action": 8},
-        "key10": {"key": "Ctrl+f10", "action": 9},
-        "key11": {"key": "Ctrl+f11", "action": 10},
-        "key12": {"key": "Ctrl+f12", "action": 11},
-    }
-}
+default_config = editor_config.default_config()
 # 点击关闭退出
 
 
 def resource_path(relative_path):
     """获取资源的绝对路径，适用于开发环境和PyInstaller环境"""
-    try:
-        # PyInstaller创建的临时文件夹的路径存储在_MEIPASS中
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+    return editor_runtime.resource_path(relative_path, runtime=sys)
 
 
-# 定义应用程序名称
-app_name = "PVZHybrid_Editor"
-
-# 获取当前用户的AppData目录路径
-appdata_path = os.getenv("APPDATA")
-
-# 在AppData目录下为你的应用创建一个配置文件夹
-app_config_path = os.path.join(appdata_path, app_name)
-if not os.path.exists(app_config_path):
-    os.makedirs(app_config_path)
-
-# 定义配置文件的路径
-config_file_path = os.path.join(app_config_path, "config.json")
+app_name = editor_config.APP_NAME
+app_config_path = str(editor_config.app_config_path(os.getenv("APPDATA")))
+config_file_path = str(editor_config.config_file_path(os.getenv("APPDATA")))
 
 # 创建配置文件的函数
 
 
 def create_config(file_path, default_config):
-    with open(file_path, "w") as file:
-        json.dump(default_config, file, indent=4, ensure_ascii=False)
+    editor_config.create_config(file_path, default_config)
 
 
 # 读取配置文件的函数
 
 
 def load_config(file_path):
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return default_config
-    except:
-        delete_config()
+    return editor_config.load_config(file_path)
 
 
 # 修改配置文件的函数
 
 
 def modify_config(file_path, section, key, value):
-    config = load_config(file_path)
-    if section not in config:
-        config[section] = {}
-    config[section][key] = value
-    save_config(config, file_path)
+    editor_config.modify_config(file_path, section, key, value)
 
 
 # 更新配置文件的函数
 def save_config(config, file_path):
-    with open(file_path, "w") as file:
-        json.dump(config, file, indent=4, ensure_ascii=False)
+    editor_config.save_config(config, file_path)
 
 
 def get_config_language():
-    config = load_config(config_file_path)
-    return i18n.safe_language(config.get("language"))
+    return editor_config.get_config_language(config_file_path)
 
 
 def set_config_language(language):
-    language = i18n.normalize_language(language)
-    config = load_config(config_file_path)
-    config["language"] = language
-    save_config(config, config_file_path)
+    editor_config.set_config_language(config_file_path, language)
 
 
 i18n.set_language(get_config_language())
@@ -234,277 +188,11 @@ def chooseGame():
         try:
             match = re.search(r"{{(.+?)}}", process1)
             window_name = match.group(1) if match else process1
-            if "v2.0" in window_name:
-                PVZ_data.update_PVZ_version(2.0)
+            detected_version = editor_runtime.detect_game_version(window_name)
+            if detected_version is not None:
+                PVZ_data.update_PVZ_version(detected_version)
                 main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.1" in window_name:
-                PVZ_data.update_PVZ_version(2.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.2" in window_name:
-                PVZ_data.update_PVZ_version(2.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.5" in window_name:
-                PVZ_data.update_PVZ_version(2.35)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.6" in window_name:
-                PVZ_data.update_PVZ_version(2.36)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.7" in window_name:
-                PVZ_data.update_PVZ_version(2.37)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3" in window_name:
-                PVZ_data.update_PVZ_version(2.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.4" in window_name:
-                PVZ_data.update_PVZ_version(2.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.5" in window_name:
-                PVZ_data.update_PVZ_version(2.5)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6.1" in window_name:
-                PVZ_data.update_PVZ_version(2.61)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6" in window_name:
-                PVZ_data.update_PVZ_version(2.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.0" in window_name:
-                PVZ_data.update_PVZ_version(3.0)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.17" in window_name:
-                PVZ_data.update_PVZ_version(3.17)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.16" in window_name:
-                PVZ_data.update_PVZ_version(3.16)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.15" in window_name:
-                PVZ_data.update_PVZ_version(3.151)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.14" in window_name:
-                PVZ_data.update_PVZ_version(3.14)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.13.2" in window_name:
-                PVZ_data.update_PVZ_version(3.132)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.12" in window_name:
-                PVZ_data.update_PVZ_version(3.12)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.11" in window_name:
-                PVZ_data.update_PVZ_version(3.11)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1.5" in window_name:
-                PVZ_data.update_PVZ_version(3.15)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1" in window_name:
-                PVZ_data.update_PVZ_version(3.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2.1" in window_name:
-                PVZ_data.update_PVZ_version(3.21)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2" in window_name:
-                PVZ_data.update_PVZ_version(3.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.3" in window_name:
-                PVZ_data.update_PVZ_version(3.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.4" in window_name:
-                PVZ_data.update_PVZ_version(3.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.5" in window_name:
-                PVZ_data.update_PVZ_version(3.5)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6.5" in window_name:
-                PVZ_data.update_PVZ_version(3.65)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6" in window_name:
-                PVZ_data.update_PVZ_version(3.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.5" in window_name:
-                PVZ_data.update_PVZ_version(3.75)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.6" in window_name:
-                PVZ_data.update_PVZ_version(3.76)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7" in window_name:
-                PVZ_data.update_PVZ_version(3.7)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.8" in window_name:
-                PVZ_data.update_PVZ_version(3.8)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9.9" in window_name:
-                PVZ_data.update_PVZ_version(3.99)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9" in window_name:
-                PVZ_data.update_PVZ_version(3.9)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
+                    editor_runtime.main_window_title(current_version, PVZ_data.PVZ_version)
                 )
             PVZ_data.update_PVZ_memory(
                 Pymem(int(re.search(r"(\d+)", process1).group(1)))
@@ -525,282 +213,20 @@ def chooseGame():
 
     def tryFindGame():
         try:
-            hwnd = win32gui.FindWindow("MainWindow", None)
-            pid = win32process.GetWindowThreadProcessId(hwnd)
-            if "v2.0" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.0)
+            game_process = editor_runtime.find_running_game_process(
+                find_window=win32gui.FindWindow,
+                get_window_thread_process_id=win32process.GetWindowThreadProcessId,
+                get_window_text=win32gui.GetWindowText,
+                create_memory=Pymem,
+                get_process_name=lambda process_id: "",
+            )
+            if game_process.detected_version is not None:
+                PVZ_data.update_PVZ_version(game_process.detected_version)
                 main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
+                    editor_runtime.main_window_title(current_version, PVZ_data.PVZ_version)
                 )
-            elif "v2.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.35)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.36)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.7" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.37)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.4" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.5)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.61)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.17" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.17)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.16" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.16)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.15" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.151)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.14" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.14)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.13.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.132)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.12" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.12)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.11" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.11)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.0" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.0)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.15)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.21)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.3" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.4" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.5)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.65)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.75)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.76)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.7)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.8" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.8)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9.9" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.99)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.9)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            PVZ_data.update_PVZ_memory(Pymem(pid[1]))
-            PVZ_data.update_PVZ_pid(pid[1])
+            PVZ_data.update_PVZ_memory(game_process.memory)
+            PVZ_data.update_PVZ_pid(game_process.process_id)
             choose_process_window.quit()
             choose_process_window.destroy()
         except:
@@ -1599,30 +1025,34 @@ def open_zombie_select_window(combobox):
 def mainWindow():
     global main_window
     main_window = ttk.Window()
-    main_window.title(
-        "杂交版多功能修改器  "
-        + str(current_version)
-        + "      游戏版本："
-        + str(PVZ_data.PVZ_version)
-    )
-    main_window.geometry("600x650")
+    main_window.title(editor_runtime.main_window_title(current_version, PVZ_data.PVZ_version))
     main_window.iconphoto(
         False, ttk.PhotoImage(file=resource_path(r"res\icon\editor.png"))
     )
     main_window.tk.call("tk", "scaling", 4 / 3)
+    main_window.minsize(
+        responsive_tk.MIN_WINDOW_WIDTH,
+        responsive_tk.MIN_WINDOW_HEIGHT,
+    )
 
-    def apply_window_position(file_path, window, section="main_window_position"):
+    def apply_window_geometry(file_path, window, section="main_window_position"):
         config = load_config(file_path)
         try:
             position = config.get(section, {})
-            x = position.get("x", 100)  # 默认值为100
-            y = position.get("y", 100)  # 默认值为100
-            window.geometry(f"+{x}+{y}")
+            saved_x = position.get("x") if isinstance(position.get("x"), int) else None
+            saved_y = position.get("y") if isinstance(position.get("y"), int) else None
+            geometry = responsive_tk.initial_window_geometry(
+                screen_width=window.winfo_screenwidth(),
+                screen_height=window.winfo_screenheight(),
+                saved_x=saved_x,
+                saved_y=saved_y,
+            )
+            window.geometry(geometry.as_tk_geometry())
         except:
             pass
 
     # 在主窗口创建后调用
-    apply_window_position(config_file_path, main_window)
+    apply_window_geometry(config_file_path, main_window)
 
     def open_update_window(latest_version):
         global main_window
@@ -1761,17 +1191,19 @@ def mainWindow():
     try:
         # 从服务器获取最新版本号
         response = requests.get(version_url)
-        latest_version = response.text.strip()
-        print(latest_version)
-        if latest_version == "The content may contain violation information":
+        update_decision = editor_runtime.evaluate_update_response(
+            current_version=current_version,
+            response_text=response.text,
+        )
+        print(update_decision.latest_version)
+        if update_decision.is_blocked:
             Messagebox.show_error(
                 "版本号被屏蔽",
                 title="更新检测失败",
             )
-        # 比较版本号
-        elif latest_version > current_version or latest_version == "0.74":
+        elif update_decision.should_open_update_window:
             # 如果发现新版本，提示用户
-            open_update_window(latest_version)
+            open_update_window(update_decision.latest_version)
     except Exception:
         Messagebox.show_error(
             "无法检查更新，请检查您的网络连接。",
@@ -1800,282 +1232,31 @@ def mainWindow():
 
     def tryFindGame():
         try:
-            hwnd = win32gui.FindWindow("MainWindow", None)
-            pid = win32process.GetWindowThreadProcessId(hwnd)
-            if "v2.0" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.0)
+            game_process = editor_runtime.find_running_game_process(
+                find_window=win32gui.FindWindow,
+                get_window_thread_process_id=win32process.GetWindowThreadProcessId,
+                get_window_text=win32gui.GetWindowText,
+                create_memory=Pymem,
+                get_process_name=lambda process_id: psutil.Process(process_id).name(),
+            )
+            if game_process.detected_version is not None:
+                PVZ_data.update_PVZ_version(game_process.detected_version)
                 main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
+                    editor_runtime.main_window_title(current_version, PVZ_data.PVZ_version)
                 )
-            elif "v2.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.35)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.36)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3.7" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.37)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.3" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.4" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.61)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v2.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(2.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.0" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.0)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.17" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.17)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.16" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.16)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.15" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.151)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.14" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.14)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.13.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.132)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.12" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.12)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.11" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.11)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.15)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.1)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2.1" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.21)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.2" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.2)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.3" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.3)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.4" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.4)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.5)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.65)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.6)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.5" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.75)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7.6" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.76)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.7" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.7)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.8" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.8)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9.9" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.99)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            elif "v3.9" in win32gui.GetWindowText(hwnd):
-                PVZ_data.update_PVZ_version(3.9)
-                main_window.title(
-                    "杂交版多功能修改器  "
-                    + str(current_version)
-                    + "      游戏版本："
-                    + str(PVZ_data.PVZ_version)
-                )
-            PVZ_data.update_PVZ_memory(Pymem(pid[1]))
-            PVZ_data.update_PVZ_pid(pid[1])
+            PVZ_data.update_PVZ_memory(game_process.memory)
+            PVZ_data.update_PVZ_pid(game_process.process_id)
             process_label["text"] = (
                 "找到进程："
-                + str(PVZ_data.PVZ_memory.process_id)
-                + str(psutil.Process(PVZ_data.PVZ_memory.process_id).name())
+                + str(game_process.process_id)
+                + str(game_process.process_name)
             )
             process_label.config(bootstyle=DANGER)
         except:
-            updateGame()
+            PVZ_data.update_PVZ_memory(0)
+            PVZ_data.update_PVZ_pid(0)
+            process_label["text"] = "未找到游戏"
+            process_label.config(bootstyle=DANGER)
 
     tryFindGame()
     choose_process_button = ttk.Button(
@@ -2097,8 +1278,16 @@ def mainWindow():
     )
     back_ground_check.place(x=3, y=-3, relx=0, rely=1, anchor=SW)
 
-    page_tab = ttk.Notebook(main_window)
-    page_tab.pack(padx=5, pady=(5, 25), fill=BOTH, expand=True)
+    main_viewport = responsive_tk.create_scrollable_viewport(
+        main_window,
+        ttk_module=ttk,
+        tk_module=tk,
+        min_content_width=900,
+        min_content_height=650,
+        bottom_margin=25,
+    )
+    page_tab = ttk.Notebook(main_viewport.frame)
+    page_tab.pack(fill=BOTH, expand=True)
     common_page = ttk.Frame(page_tab)
     common_page.pack()
     page_tab.add(common_page, text="常用功能")
@@ -2866,8 +2055,7 @@ def mainWindow():
     # 读取快捷键配置
 
     def get_shortcuts():
-        config = load_config(config_file_path)
-        return config.get("shortcuts", {})
+        return editor_config.get_shortcuts(config_file_path)
 
     # 移除所有当前的快捷键监听
     def remove_all_hotkeys():
@@ -2886,13 +2074,12 @@ def mainWindow():
 
     # 修改快捷键配置并重新加载监听
     def modify_shortcut(shortcut_id, new_key, new_action):
-        config = load_config(config_file_path)
-        # 保存旧的快捷键值
-        old_key = config["shortcuts"].get(shortcut_id, {}).get("key")
-        if "shortcuts" not in config:
-            config["shortcuts"] = {}
-        config["shortcuts"][shortcut_id] = {"key": new_key, "action": new_action}
-        save_config(config, config_file_path)
+        old_key = editor_config.set_shortcut(
+            config_file_path,
+            shortcut_id,
+            key=new_key,
+            action=new_action,
+        )
         # 如果旧的快捷键存在，则移除旧的快捷键监听
         if old_key:
             keyboard.remove_hotkey(old_key)
